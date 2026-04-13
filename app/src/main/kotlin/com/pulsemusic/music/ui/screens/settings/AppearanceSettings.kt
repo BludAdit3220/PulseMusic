@@ -109,6 +109,7 @@ import com.pulsemusic.music.ui.component.EnumDialog
 import com.pulsemusic.music.ui.component.IconButton
 import com.pulsemusic.music.ui.component.Material3SettingsGroup
 import com.pulsemusic.music.ui.component.Material3SettingsItem
+import com.pulsemusic.music.ui.component.MountainSlider
 import com.pulsemusic.music.ui.component.PlayerSliderTrack
 import com.pulsemusic.music.ui.component.SquigglySlider
 import com.pulsemusic.music.ui.component.WaveformSeekBar
@@ -1006,7 +1007,44 @@ fun AppearanceSettings(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    Spacer(modifier = Modifier.weight(1f))
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier =
+                            Modifier
+                                .aspectRatio(1f)
+                                .weight(1f)
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(
+                                    1.dp,
+                                    if (sliderStyle == SliderStyle.MOUNTAIN) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.outlineVariant
+                                    },
+                                    RoundedCornerShape(16.dp),
+                                ).clickable {
+                                    onSliderStyleChange(SliderStyle.MOUNTAIN)
+                                    onSquigglySliderChange(false)
+                                    showSliderOptionDialog = false
+                                }.padding(12.dp),
+                    ) {
+                        val sliderValue = 0.5f
+                        MountainSlider(
+                            value = sliderValue,
+                            valueRange = 0f..1f,
+                            onValueChange = { /* preview only */ },
+                            colors = sliderPreviewColors,
+                            enabled = false,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text = stringResource(R.string.mountain),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
@@ -1310,6 +1348,10 @@ fun AppearanceSettings(
                                     }
                                     SliderStyle.WAVEFORM -> {
                                         stringResource(R.string.waveform)
+                                    }
+
+                                    SliderStyle.MOUNTAIN -> {
+                                        stringResource(R.string.mountain)
                                     }
                                 },
                             )

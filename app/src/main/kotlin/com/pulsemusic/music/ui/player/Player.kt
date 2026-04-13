@@ -166,6 +166,7 @@ import com.pulsemusic.music.ui.component.BottomSheetState
 import com.pulsemusic.music.ui.component.LocalBottomSheetPageState
 import com.pulsemusic.music.ui.component.LocalMenuState
 import com.pulsemusic.music.ui.component.Lyrics
+import com.pulsemusic.music.ui.component.MountainSlider
 import com.pulsemusic.music.ui.component.PlayerSliderTrack
 import com.pulsemusic.music.ui.component.ResizableIconButton
 import com.pulsemusic.music.ui.component.SquigglySlider
@@ -1432,6 +1433,32 @@ fun BottomSheetPlayer(
                             isPlaying = effectiveIsPlaying,
                         )
                     }
+                }
+
+                SliderStyle.MOUNTAIN -> {
+                    MountainSlider(
+                        value = (sliderPosition ?: effectivePosition).toFloat(),
+                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
+                        onValueChange = {
+                            sliderPosition = it.toLong()
+                        },
+                        onValueChangeFinished = {
+                            sliderPosition?.let {
+                                if (isCasting) {
+                                    castHandler?.seekTo(it)
+                                    lastManualSeekTime = System.currentTimeMillis()
+                                } else {
+                                    playerConnection.player.seekTo(it)
+                                }
+                                position = it
+                            }
+                            sliderPosition = null
+                        },
+                        colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
+                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                        enabled = !isListenTogetherGuest,
+                        isPlaying = effectiveIsPlaying,
+                    )
                 }
 
                 SliderStyle.SLIM -> {
