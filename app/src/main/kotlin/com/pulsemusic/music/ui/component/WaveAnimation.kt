@@ -22,9 +22,11 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
@@ -33,7 +35,7 @@ import kotlin.math.sin
 enum class WaveType {
     BLOB,
     SQUARE_BARS,
-    CIRCULAR_BARS
+    CIRCULAR_RING
 }
 
 @Composable
@@ -183,39 +185,61 @@ fun WaveAnimation(
                     )
                 }
             }
-            WaveType.CIRCULAR_BARS -> {
-                val barCount = 48
+            WaveType.CIRCULAR_RING -> {
                 val centerX = size.width / 2
                 val centerY = size.height / 2
-                // Bars start at 80% of the radius and extend to 100%
-                val innerRadius = (size.width.coerceAtMost(size.height) / 2) * 0.8f
-                val maxBarHeight = (size.width.coerceAtMost(size.height) / 2) * 0.2f
+                val minSize = size.width.coerceAtMost(size.height)
+                val baseRadius = minSize / 2 * 0.82f
+                val maxAmplitude = minSize / 2 * 0.18f
+
+                // Render 72 thick bars for a high-density premium look
+                val barCount = 72
+                val angleStep = (2.0 * Math.PI / barCount).toFloat()
 
                 for (i in 0 until barCount) {
-                    val progress = i.toFloat() / barCount
-                    // Base angle is static relative to the canvas; parent handles rotation
-                    val angle = (progress * 2 * Math.PI.toFloat())
+                    val angle = i * angleStep
                     
-                    val heightFactor = if (isPlaying) {
-                        // Reactive animation of the bars' height
-                        (sin(wavePhase * 2f + progress * Math.PI.toFloat() * 8) * 0.4f + 0.6f) * intensity
-                    } else {
-                        0.1f
-                    }
-                    val barHeight = maxBarHeight * heightFactor
+                    // High-speed procedural height calculation
+                    // Sum of different frequencies for "punchy" complex motion
+                    val speedFactor = 2.5 // Increased speed
+                    val wave1 = sin(angle * 2.0 + wavePhase * speedFactor)
+                    val wave2 = cos(angle * 4.0 - wavePhase * speedFactor * 1.5)
+                    val wave3 = sin(angle * 1.0 + wavePhase * speedFactor * 0.7)
                     
-                    val startX = centerX + innerRadius * cos(angle)
-                    val startY = centerY + innerRadius * sin(angle)
-                    val endX = centerX + (innerRadius + barHeight) * cos(angle)
-                    val endY = centerY + (innerRadius + barHeight) * sin(angle)
-
-                    val barColor = lerp(color, secondaryColor, (sin(wavePhase + progress * 5f) * 0.5f + 0.5f))
-
+                    val combined = (wave1 * 0.4 + wave2 * 0.3 + wave3 * 0.3).coerceIn(-1.0, 1.0)
+                    val normalizedHeight = (combined * 0.5 + 0.5) * (if (isPlaying) 1.0 else 0.15)
+                    
+                    val barLen = maxAmplitude * normalizedHeight.toFloat() * intensity
+                    
+                    // Ensure a minimum visible height even at 0 amplitude
+                    val effectiveBarLen = barLen.coerceAtLeast(2.dp.toPx())
+                    
+                    val startR = baseRadius
+                    val endR = baseRadius + effectiveBarLen
+                    
+                    val startX = centerX + startR * cos(angle.toDouble()).toFloat()
+                    val startY = centerY + startR * sin(angle.toDouble()).toFloat()
+                    val endX = centerX + endR * cos(angle.toDouble()).toFloat()
+                    val endY = centerY + endR * sin(angle.toDouble()).toFloat()
+                    
+                    // Main bar stroke
                     drawLine(
-                        color = barColor,
+                        brush = Brush.sweepGradient(
+                            colors = listOf(currentColor, secondaryColor, currentColor),
+                            center = Offset(centerX, centerY)
+                        ),
                         start = Offset(startX, startY),
                         end = Offset(endX, endY),
-                        strokeWidth = 3.dp.toPx(),
+                        strokeWidth = 4.dp.toPx(), // Thicker bars
+                        cap = StrokeCap.Round
+                    )
+                    
+                    // Subtle glow/shadow behind the bar
+                    drawLine(
+                        color = currentColor.copy(alpha = 0.2f),
+                        start = Offset(startX, startY),
+                        end = Offset(endX, endY),
+                        strokeWidth = 10.dp.toPx(),
                         cap = StrokeCap.Round
                     )
                 }

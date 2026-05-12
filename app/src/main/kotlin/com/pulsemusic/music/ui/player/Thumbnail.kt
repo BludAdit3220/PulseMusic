@@ -521,21 +521,6 @@ private fun ThumbnailItem(
     val castIsPlaying by castHandler?.castIsPlaying?.collectAsState() ?: remember { mutableStateOf(false) }
     val effectiveIsPlaying = if (isCasting) castIsPlaying else isPlaying
 
-    val rotation = remember { Animatable(0f) }
-    LaunchedEffect(effectiveIsPlaying) {
-        if (effectiveIsPlaying) {
-            rotation.animateTo(
-                targetValue = rotation.value + 360f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(15000, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart
-                )
-            )
-        } else {
-            rotation.stop()
-        }
-    }
-
     val enableWaveAnimation by rememberPreference(EnableWaveAnimationKey, true)
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
     var skipMultiplier by remember { mutableIntStateOf(1) }
@@ -592,9 +577,7 @@ private fun ThumbnailItem(
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(dimensions.thumbnailSize + 80.dp) // Large enough for disk + bars
-                .graphicsLayer { rotationZ = rotation.value }
+            modifier = Modifier.size(dimensions.thumbnailSize + 80.dp)
         ) {
             if (enableWaveAnimation) {
                 WaveAnimation(
@@ -602,10 +585,11 @@ private fun ThumbnailItem(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.primary,
                     secondaryColor = MaterialTheme.colorScheme.tertiary,
-                    type = WaveType.CIRCULAR_BARS,
+                    type = WaveType.CIRCULAR_RING,
                     intensity = 1.0f
                 )
             }
+
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
