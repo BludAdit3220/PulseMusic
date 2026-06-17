@@ -308,7 +308,6 @@ dependencies {
     implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-beta02")
     implementation(libs.accompanist.lyrics.ui)
     implementation(libs.accompanist.lyrics.core)
-    implementation("com.github.therealbush:translator:1.1.1")
 
     // Sub-modules
     implementation(project(":innertube"))

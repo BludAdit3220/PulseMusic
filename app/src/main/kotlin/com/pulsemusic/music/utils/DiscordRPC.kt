@@ -8,8 +8,6 @@
 package com.pulsemusic.music.utils
 
 import android.content.Context
-import me.bush.translator.Language
-import me.bush.translator.Translator
 import com.pulsemusic.music.BuildConfig
 import com.pulsemusic.music.R
 import com.pulsemusic.music.constants.DiscordActivityButton1CustomUrlKey
@@ -235,7 +233,6 @@ class DiscordRPC(
         val translatedMap = mutableMapOf<String, String>()
 
         runCatching {
-            val translator = Translator()
             contextList.forEach { key ->
                 val value = rawMap[key]?.takeIf { it.isNotBlank() } ?: return@forEach
                 val cacheKey = "${song.song.id}:$key:$targetLang"
@@ -244,10 +241,7 @@ class DiscordRPC(
                     translatedMap[key] = cached
                 } else {
                     val translated = runCatching {
-                        translator.translateBlocking(
-                            value,
-                            Language.valueOf(targetLang.uppercase()),
-                        ).translatedText
+                        GoogleTranslator.translate(value, targetLang)
                     }.getOrElse {
                         Timber.tag(TAG).e(it, "Translation failed for %s", key)
                         value
@@ -257,7 +251,7 @@ class DiscordRPC(
                 }
             }
         }.onFailure {
-            Timber.tag(TAG).e(it, "Translator init failed")
+            Timber.tag(TAG).e(it, "Translator failed")
         }
 
         return translatedMap

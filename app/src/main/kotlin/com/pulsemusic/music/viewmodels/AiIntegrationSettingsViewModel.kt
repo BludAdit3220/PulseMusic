@@ -40,6 +40,9 @@ import com.pulsemusic.music.constants.AiProviderKey
 import com.pulsemusic.music.constants.AiSelectedModelKey
 import com.pulsemusic.music.extensions.toEnum
 import com.pulsemusic.music.utils.dataStore
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
 
 data class AiIntegrationActionState(
     val isTesting: Boolean = false,
@@ -55,6 +58,8 @@ class AiIntegrationSettingsViewModel
 constructor(
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
+    private val modelsCacheFile = File(context.cacheDir, "ai_models_cache.json")
+
     private val _actionState = MutableStateFlow(AiIntegrationActionState())
     val actionState: StateFlow<AiIntegrationActionState> = _actionState.asStateFlow()
 
@@ -66,11 +71,50 @@ constructor(
     private var fetchModelsJob: Job? = null
     private val fetchModelsRequestId = AtomicInteger()
 
+    init {
+        loadModelsFromCache()
+    }
+
+    private fun loadModelsFromCache() {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (modelsCacheFile.exists()) {
+                try {
+                    val json = modelsCacheFile.readText()
+                    val array = JSONArray(json)
+                    val models = List(array.length()) { i ->
+                        val obj = array.getJSONObject(i)
+                        AiModelOption(obj.getString("id"), obj.getString("displayName"))
+                    }
+                    _availableModels.value = models
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    private fun saveModelsToCache(models: List<AiModelOption>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val array = JSONArray()
+                models.forEach { model ->
+                    array.put(JSONObject().put("id", model.id).put("displayName", model.displayName))
+                }
+                modelsCacheFile.writeText(array.toString())
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun deleteModelsCache() {
+        if (modelsCacheFile.exists()) {
+            modelsCacheFile.delete()
+        }
+    }
+
     fun clearAvailableModels() {
         fetchModelsRequestId.incrementAndGet()
         fetchModelsJob?.cancel()
         fetchModelsJob = null
         _availableModels.value = emptyList()
+        deleteModelsCache()
         _actionState.value = _actionState.value.copy(
             isFetchingModels = false,
             errorMessage = null,
@@ -100,6 +144,7 @@ constructor(
                 val models = AiTextService.fetchModels(config)
                 if (requestId == fetchModelsRequestId.get()) {
                     _availableModels.value = models
+                    saveModelsToCache(models)
                 }
             } catch (e: CancellationException) {
                 throw e

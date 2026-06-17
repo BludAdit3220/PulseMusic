@@ -67,8 +67,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
-import me.bush.translator.Translator
-import me.bush.translator.Language
+import com.pulsemusic.music.utils.GoogleTranslator
 import com.pulsemusic.music.utils.TranslatorLanguages
 import com.pulsemusic.music.utils.TranslatorLang
 import androidx.compose.runtime.produceState
@@ -623,27 +622,9 @@ fun LyricsMenu(
                             isTranslating = true
                             val inputText = textFieldValue.text
                             val languageCode = selectedLanguageCode
-                            val languageName = selectedLanguageName
                             coroutineScope.launch {
                                 try {
-                                    val lang = try {
-                                        Language(languageCode)
-                                    } catch (e: Exception) {
-                                        try { Language(languageName) } catch (_: Exception) { null }
-                                    }
-
-                                    if (lang == null) {
-                                        Toast.makeText(
-                                            context,
-                                            "Unsupported language: $languageName",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        return@launch
-                                    }
-
                                     val translatedLyrics = withContext(Dispatchers.IO) {
-                                        val translator = Translator()
-
                                         val lines = inputText.split("\n")
                                         val tsRegex =
                                             Regex("^((?:\\[[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?\\])+)")
@@ -694,8 +675,7 @@ fun LyricsMenu(
 
                                                 val batchTexts = batchIndices.map { contents[it]!! }
                                                 val joined = batchTexts.joinToString(separator = sep)
-                                                val translatedJoined =
-                                                    translator.translateBlocking(joined, lang).translatedText
+                                                val translatedJoined = GoogleTranslator.translate(joined, languageCode)
 
                                                 val parts = translatedJoined.split(sep)
                                                 if (parts.size == batchTexts.size) {
@@ -705,10 +685,8 @@ fun LyricsMenu(
                                                 } else {
                                                     for (idx in batchIndices) {
                                                         val original = contents[idx]!!
-                                                        val singleTranslated = runCatching {
-                                                            translator.translateBlocking(original, lang).translatedText
-                                                        }.getOrNull() ?: original
-                                                        translatedMap[idx] = singleTranslated
+                                                        val singleTranslated = GoogleTranslator.translate(original, languageCode)
+                                                        translatedMap[idx] = singleTranslated.ifBlank { original }
                                                     }
                                                 }
                                             }

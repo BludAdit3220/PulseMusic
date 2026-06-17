@@ -500,8 +500,8 @@ private fun ModelPickerPreference(
 
     val description = when {
         isFetching && availableModels.isEmpty() -> stringResource(R.string.ai_model_loading)
-        availableModels.isEmpty() && !canFetch -> stringResource(R.string.ai_model_api_key_required)
-        availableModels.isEmpty() -> stringResource(R.string.ai_model_fetch_hint)
+        availableModels.isEmpty() && !canFetch && selectedModel.isBlank() -> stringResource(R.string.ai_model_api_key_required)
+        availableModels.isEmpty() && selectedModel.isBlank() -> stringResource(R.string.ai_model_fetch_hint)
         selectedModel.isBlank() -> stringResource(R.string.ai_model_not_selected)
         else -> availableModels.firstOrNull { it.id == selectedModel }?.displayName ?: selectedModel
     }
