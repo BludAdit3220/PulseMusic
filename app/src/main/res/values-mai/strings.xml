@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home">घर</string>
+    <string name="songs">गीत</string>
+    <string name="artists">कलाकार</string>
+    <string name="albums">एल्बम</string>
+    <string name="playlists">प्लेलिस्ट</string>
+    <string name="history">इतिहास</string>
+    <string name="stats">आँकड़ा</string>
+    <string name="search">खोजू</string>
+    <string name="account">खाता</string>
+</resources>

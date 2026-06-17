@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Turntable widget layout.
+  The ImageView (turntable_canvas) is square and fills most of the widget;
+  the title/artist text and control buttons sit in a thin panel below.
+  RemoteViews only supports a restricted subset of Views and attributes.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:background="@android:color/transparent"
+    android:padding="4dp">
+
+    <!-- The rendered turntable bitmap (art + vinyl grooves + radial wave) -->
+    <ImageView
+        android:id="@+id/turntable_canvas"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_gravity="center_horizontal"
+        android:scaleType="fitCenter"
+        android:adjustViewBounds="true"
+        android:contentDescription="@string/album_cover_desc" />
+
+    <!-- Info + controls row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="4dp"
+        android:paddingBottom="2dp"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp">
+
+        <!-- Skip previous -->
+        <ImageButton
+            android:id="@+id/turntable_prev"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/skip_previous"
+            android:background="@android:color/transparent"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/widget_previous" />
+
+        <!-- Play / pause -->
+        <ImageButton
+            android:id="@+id/turntable_play_pause"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_play_white"
+            android:background="@android:color/transparent"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/play"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp" />
+
+        <!-- Skip next -->
+        <ImageButton
+            android:id="@+id/turntable_next"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/skip_next"
+            android:background="@android:color/transparent"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/next" />
+
+        <!-- Title + artist stacked -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingStart="6dp"
+            android:ellipsize="end">
+
+            <TextView
+                android:id="@+id/turntable_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:text="@string/no_track_playing" />
+
+            <TextView
+                android:id="@+id/turntable_artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                android:textColor="#B3FFFFFF"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:text="@string/unknown_artist" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

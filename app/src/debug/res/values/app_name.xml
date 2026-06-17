@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PulseMusic Debug</string>
+<!-- Fixed string in pulsemusic_strings.xml -->
+    <string name="audio_crossfade_seconds">%s Seconds</string>
+</resources>
