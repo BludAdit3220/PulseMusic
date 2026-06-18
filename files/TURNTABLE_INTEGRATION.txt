@@ -1,0 +1,122 @@
+# TurntableWidget — Integration Guide
+# Exact lines to add/change in existing files. Nothing else needs touching.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. AndroidManifest.xml  — add inside <application>
+# ─────────────────────────────────────────────────────────────────────────────
+
+        <receiver
+            android:name=".widget.TurntableWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <!-- turntable control actions are sent as broadcasts to this receiver -->
+                <action android:name="com.pulsemusic.music.widget.TURNTABLE_PLAY_PAUSE" />
+                <action android:name="com.pulsemusic.music.widget.TURNTABLE_NEXT" />
+                <action android:name="com.pulsemusic.music.widget.TURNTABLE_PREVIOUS" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_turntable_info" />
+        </receiver>
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. MusicServiceWidgetUpdater.kt
+#    The turntable widget does NOT go into playbackWidgets/progressWidgets
+#    (those are Glance-only). Instead, push state directly via TurntableWidgetState.
+#
+#    Add this at the END of the private suspend fun pushState() method,
+#    after the existing `playbackWidgets.forEach { ... }` block:
+# ─────────────────────────────────────────────────────────────────────────────
+
+        // ── Turntable widget (RemoteViews-based, separate from Glance) ─────
+        TurntableWidgetState.isAvailable   = snapshot.isAvailable
+        TurntableWidgetState.isPlaying     = snapshot.isPlaying
+        TurntableWidgetState.title         = snapshot.title
+        TurntableWidgetState.artist        = snapshot.artist
+        TurntableWidgetState.dominantColor = snapshot.dominantColor
+        // artBitmap: decode from artPath on IO dispatcher
+        if (snapshot.artPath != null) {
+            val artFile = File(snapshot.artPath)
+            if (artFile.exists()) {
+                TurntableWidgetState.artBitmap =
+                    withContext(Dispatchers.IO) {
+                        BitmapFactory.decodeFile(artFile.absolutePath)
+                    }
+            }
+        } else {
+            TurntableWidgetState.artBitmap = null
+        }
+        TurntableWidgetRenderer.update(service)
+
+#    Add the following imports at the top of MusicServiceWidgetUpdater.kt:
+import android.graphics.BitmapFactory
+import com.pulsemusic.music.widget.TurntableWidgetRenderer
+import com.pulsemusic.music.widget.TurntableWidgetState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. MusicService.kt
+#    Handle the UPDATE_TURNTABLE_WIDGET action in onStartCommand's `when` block.
+#    Add this case alongside the existing WIDGET_PLAY_PAUSE / WIDGET_SKIP_* cases:
+# ─────────────────────────────────────────────────────────────────────────────
+
+            TurntableWidgetReceiver.ACTION_UPDATE_TURNTABLE_WIDGET -> {
+                widgetUpdater.update()
+            }
+
+#    Add this import:
+import com.pulsemusic.music.widget.TurntableWidgetReceiver
+
+#    Also add the isServiceRunning companion field (if not already present).
+#    Inside the companion object:
+        @Volatile var isServiceRunning: Boolean = false
+
+#    Set it in onCreate:
+        MusicService.isServiceRunning = true
+#    Clear it in onDestroy:
+        MusicService.isServiceRunning = false
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. res/values/strings.xml  — add:
+# ─────────────────────────────────────────────────────────────────────────────
+
+    <string name="widget_turntable_description">Turntable — circular vinyl widget with radial wave visualizer</string>
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. Wave data (optional but recommended for live visualizer)
+#
+#    The wave points need to come from an audio session / FFT source.
+#    The simplest integration: in your audio effect / equalizer callback
+#    (wherever you compute visualizer data elsewhere in the app), add:
+#
+#        TurntableWidgetState.updateWave(fftPoints)
+#        TurntableWidgetRenderer.update(applicationContext)
+#
+#    Without this step the widget still works — it just shows a flat
+#    (no-wave) turntable when playing, which is still visually correct.
+#    The wave only animates when you feed it live FFT data.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. New files to add to the project
+# ─────────────────────────────────────────────────────────────────────────────
+
+app/src/main/kotlin/com/pulsemusic/music/widget/
+    RadialWaveView.kt                ← QML RadialWaveVisualizer port
+    TurntableWidgetState.kt          ← shared state holder
+    TurntableWidgetRenderer.kt       ← RemoteViews builder + bitmap push
+    TurntableWidgetReceiver.kt       ← AppWidgetProvider (replaces Metrolist version)
+
+app/src/main/res/layout/
+    widget_turntable.xml             ← RemoteViews layout
+
+app/src/main/res/xml/
+    widget_turntable_info.xml        ← AppWidget provider metadata

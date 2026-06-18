@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_language">App के भाषा</string>
+    <string name="general">सामान्य</string>
+    <string name="settings_section_ui">इंटरफेस</string>
+    <string name="wrapped_playlist_ready">अहाँक व्यक्तिगत प्लेलिस्ट तैयार अछि!</string>
+    <string name="wrapped_create_playlist">प्लेलिस्ट बनाउ</string>
+    <string name="wrapped_playlist_saved">प्लेलिस्ट सहेज लेल गेल</string>
+</resources>
