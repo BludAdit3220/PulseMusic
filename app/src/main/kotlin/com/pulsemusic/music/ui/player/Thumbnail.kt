@@ -442,6 +442,9 @@ fun Thumbnail(
                         playerConnection.player.prepare()
                         playerConnection.player.play()
                     },
+                    refetch = {
+                        playerConnection.forceRefetch()
+                    },
                 )
             }
         }

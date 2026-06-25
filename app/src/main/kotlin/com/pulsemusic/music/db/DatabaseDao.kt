@@ -1798,6 +1798,9 @@ interface DatabaseDao {
     @Query("DELETE FROM artist WHERE isLocal = 1 AND id NOT IN (SELECT DISTINCT song_artist_map.artistId FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE song.isLocal = 1)")
     fun pruneLocalArtists()
 
+    @Query("DELETE FROM format WHERE id = :id")
+    fun deleteFormat(id: String)
+
     @Query("DELETE FROM format WHERE id NOT IN (SELECT id FROM song)")
     fun pruneFormats()
 

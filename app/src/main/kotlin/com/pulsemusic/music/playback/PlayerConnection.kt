@@ -139,6 +139,10 @@ class PlayerConnection(
         service.toggleLike()
     }
 
+    fun forceRefetch() {
+        service.forceRefetch()
+    }
+
     fun seekToNext() {
         val state = service.togetherSessionState.value as? com.pulsemusic.music.together.TogetherSessionState.Joined
         if (state?.role is com.pulsemusic.music.together.TogetherRole.Guest) {

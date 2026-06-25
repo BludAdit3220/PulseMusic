@@ -3869,7 +3869,30 @@ class MusicService :
                  }
              }
          }
-     }
+    }
+
+    fun forceRefetch() {
+        val currentMediaId = player.currentMediaItem?.mediaId ?: return
+        
+        // 1. Clear memory caches
+        playbackUrlCache.remove(currentMediaId)
+        contentLengthCache.remove(currentMediaId)
+        YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
+        
+        // 2. Clear database metadata (most likely cause of IO_READ_POSITION_OUT_OF_RANGE)
+        database.query {
+            deleteFormat(currentMediaId)
+        }
+        
+        // 3. Clear partial player cache (non-downloaded) to remove corrupted chunks
+        scope.launch(Dispatchers.IO) {
+            runCatching { playerCache.removeResource(currentMediaId) }
+        }
+        
+        // 4. Force player to re-resolve the stream from scratch
+        player.prepare()
+        player.play()
+    }
 
     fun toggleStartRadio() {
         startRadioSeamlessly()

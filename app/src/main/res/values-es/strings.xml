@@ -825,7 +825,6 @@
     <string name="error_malformed_stream">Error en la fuente</string>
     <string name="support_development_title">Apoyar el desarrollo</string>
     <string name="support_development_message">¡Hola! Soy Aditya Parasher, el desarrollador de PulseMusic. Si PulseMusic se ha ganado un hueco en tu rutina diaria de música, puedes ayudar a que siga adelante haciendo una donación o marcando el proyecto como favorito en GitHub. Gracias por apoyar el trabajo que hay detrás de la aplicación.</string>
-    <string name="support_development_donate">Haz una donación para apoyar el desarrollo</string>
     <string name="support_development_star">Marcar como favorito en GitHub</string>
     <string name="later">Más tarde</string>
     <string name="build_your_mix_title">Crea tu mezcla</string>

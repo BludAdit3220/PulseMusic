@@ -657,7 +657,6 @@
     <string name="support_github">스타 아카이브Tune!</string>
     <string name="support_development_title">개발 지원</string>
     <string name="support_development_message">안녕하세요! PulseMusic의 개발자 코이버스입니다. PulseMusic이 일상적인 청취의 자리를 차지했다면 GitHub에서 프로젝트를 기부하거나 별표 표시하여 계속해서 발전하는 데 도움을 줄 수 있습니다. 앱 작업을 지원해 주셔서 감사합니다.</string>
-    <string name="support_development_donate">개발 지원을 위해 기부하세요</string>
     <string name="support_development_star">GitHub의 스타</string>
     <string name="later">나중에</string>
     <!-- Update dialog -->
