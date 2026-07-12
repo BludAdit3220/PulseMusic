@@ -6,7 +6,7 @@ PulseMusic is a free/libre software music player released under the GNU General 
 
 **Copyright © Aditya Parasher and ArchiveTune contributors**
 
-Original project: https://github.com/BludAdit3220/ArchiveTune  
+Original project: https://github.com/rukamori/ArchiveTune 
 License: GNU General Public License v3.0
 
 Components derived from ArchiveTune include (but are not limited to):
