@@ -38,6 +38,7 @@ import com.pulsemusic.music.db.entities.PlaylistEntity
 import com.pulsemusic.music.db.entities.PlayCountEntity
 import com.pulsemusic.music.db.entities.PlaylistSongMap
 import com.pulsemusic.music.db.entities.PlaylistSongMapPreview
+import com.pulsemusic.music.db.entities.RecognitionHistory
 import com.pulsemusic.music.db.entities.RelatedSongMap
 import com.pulsemusic.music.db.entities.SearchHistory
 import com.pulsemusic.music.db.entities.SetVideoIdEntity
@@ -57,7 +58,7 @@ import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 
 private const val TAG = "MusicDatabase"
-private const val CURRENT_VERSION = 29
+private const val CURRENT_VERSION = 30
 
 class MusicDatabase(
     private val delegate: InternalDatabase,
@@ -122,7 +123,8 @@ class MusicDatabase(
         SetVideoIdEntity::class,
         PlayCountEntity::class,
         TagEntity::class,
-        PlaylistTagMap::class
+        PlaylistTagMap::class,
+        RecognitionHistory::class
     ],
     views = [
         SortedSongArtistMap::class,
@@ -153,6 +155,7 @@ class MusicDatabase(
         AutoMigration(from = 20, to = 21, spec = Migration20To21::class),
         AutoMigration(from = 21, to = 22),
         AutoMigration(from = 28, to = 29),
+        AutoMigration(from = 29, to = 30),
     ],
 )
 @TypeConverters(Converters::class)

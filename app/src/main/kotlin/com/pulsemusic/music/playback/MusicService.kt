@@ -131,6 +131,7 @@ import com.pulsemusic.music.constants.PlayerStreamClient
 import com.pulsemusic.music.constants.PlayerStreamClientKey
 import com.pulsemusic.music.constants.PlayerVolumeKey
 import com.pulsemusic.music.constants.RepeatModeKey
+import com.pulsemusic.music.constants.CacheOnMobileDataKey
 import com.pulsemusic.music.constants.ShowLyricsKey
 import com.pulsemusic.music.constants.SkipSilenceKey
 import com.pulsemusic.music.constants.MaxSongCacheSizeKey
@@ -5111,8 +5112,9 @@ private fun onMediaItemTransitionInternal() {
             .setCache(downloadCache)
             .setUpstreamDataSourceFactory(
                 DataSource.Factory {
+                    val cacheWriteEnabled = !isLowDataModeActive() || dataStore.get(CacheOnMobileDataKey, false)
                     createPlayerCacheDataSourceFactory(
-                        cacheWriteEnabled = !isLowDataModeActive(),
+                        cacheWriteEnabled = cacheWriteEnabled,
                     ).createDataSource()
                 }
             ).setCacheWriteDataSinkFactory(null)

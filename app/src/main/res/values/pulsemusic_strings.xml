@@ -1331,6 +1331,8 @@
     <string name="logout_confirm_yes">Logout Confirm Yes</string>
     <string name="logs_empty_message">Logs Empty Message</string>
     <string name="low_data_mode_description">Reduce Data Usage During Playback</string>
+    <string name="cache_on_mobile_data">Cache on Mobile Data</string>
+    <string name="cache_on_mobile_data_desc">Automatically cache songs even when using mobile or metered data</string>
     <string name="low_data_mode_title">Low Data Mode</string>
     <string name="lyrics_animation_style_v2_only">Lyrics Animation Style V2 Only</string>
     <string name="lyrics_line_blur">Lyrics Line Blur</string>
@@ -1866,6 +1868,8 @@
     <string name="widget_pause">Widget Pause</string>
     <string name="widget_playback_capsule_description">Widget Playback Capsule Description</string>
     <string name="widget_playback_command_description">Widget Playback Command Description</string>
+    <string name="widget_music_recognition_description">One-tap song recognition — tap the widget to identify what\'s playing around you</string>
+    <string name="widget_tap_to_identify_song">Tap to identify a song</string>
     <string name="widget_playback_deck_description">Widget Playback Deck Description</string>
     <string name="widget_playback_spotlight_description">Widget Playback Spotlight Description</string>
     <string name="widget_previous">Widget Previous</string>

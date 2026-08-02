@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.pulsemusic.music.innertube.utils.parseCookieString
 import com.pulsemusic.music.LocalPlayerAwareWindowInsets
@@ -48,8 +49,11 @@ import com.pulsemusic.music.constants.DisableBlurKey
 import com.pulsemusic.music.constants.QuickPicksDisplayMode
 import com.pulsemusic.music.constants.QuickPicksDisplayModeKey
 import com.pulsemusic.music.constants.ShowHomeCategoryChipsKey
+import com.pulsemusic.music.db.entities.Song
+import com.pulsemusic.music.db.entities.Album
 import com.pulsemusic.music.models.toMediaMetadata
 import com.pulsemusic.music.playback.queues.YouTubeQueue
+import com.pulsemusic.music.playback.queues.YouTubeAlbumRadio
 import com.pulsemusic.music.ui.component.ChipsRow
 import com.pulsemusic.music.ui.component.ExpressivePullToRefreshBox
 import com.pulsemusic.music.ui.component.HeroCarouselItem
@@ -60,8 +64,13 @@ import com.pulsemusic.music.ui.component.NavigationTitle
 import com.pulsemusic.music.ui.utils.SnapLayoutInfoProvider
 import com.pulsemusic.music.utils.rememberPreference
 import com.pulsemusic.music.utils.rememberEnumPreference
+import com.pulsemusic.music.ui.component.HideOnScrollFAB
+import com.pulsemusic.music.musicrecognition.MusicRecognitionRoute
+import com.pulsemusic.music.musicrecognition.openMusicRecognition
 import com.pulsemusic.music.viewmodels.HomeViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -90,6 +99,9 @@ fun HomeScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     val forgottenFavoritesLazyGridState = rememberLazyGridState()
+
+    val allLocalItems by viewModel.allLocalItems.collectAsState()
+    val allYtItems by viewModel.allYtItems.collectAsState()
 
     val accountName by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
@@ -470,8 +482,30 @@ fun HomeScreen(
                         HomeLoadingShimmer(modifier = Modifier.animateItem())
                     }
                 }
-                }
             }
+
+            HideOnScrollFAB(
+                visible = allLocalItems.isNotEmpty() || allYtItems.isNotEmpty(),
+                lazyListState = lazylistState,
+                icon = R.drawable.shuffle,
+                onClick = {
+                    val luckyItem = (allLocalItems + allYtItems).randomOrNull()
+                    if (luckyItem != null) {
+                        when (luckyItem) {
+                            is Song -> {
+                                playerConnection.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata()))
+                            }
+                            is Album -> {
+                                playerConnection.playQueue(YouTubeAlbumRadio(luckyItem.id))
+                            }
+                        }
+                    }
+                },
+                onRecognitionClick = {
+                    (navController as? NavHostController)?.openMusicRecognition()
+                }
+            )
         }
     }
+}
 }

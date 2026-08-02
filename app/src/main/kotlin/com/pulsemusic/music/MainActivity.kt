@@ -215,6 +215,7 @@ import com.pulsemusic.music.innertube.models.SongItem
 import com.pulsemusic.music.extensions.toMediaItem
 import com.pulsemusic.music.models.toMediaMetadata
 import com.pulsemusic.music.musicrecognition.ACTION_MUSIC_RECOGNITION
+import com.pulsemusic.music.musicrecognition.openMusicRecognition
 import com.pulsemusic.music.musicrecognition.MusicRecognitionRoute
 import com.pulsemusic.music.musicrecognition.openMusicRecognition
 import com.pulsemusic.music.playback.DownloadUtil
@@ -1462,6 +1463,13 @@ class MainActivity : ComponentActivity() {
                                                                     },
                                                                 ),
                                                                 contentDescription = null,
+                                                            )
+                                                        }
+                                                    } else {
+                                                        IconButton(onClick = { navController.openMusicRecognition() }) {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.mic),
+                                                                contentDescription = stringResource(R.string.music_recognition)
                                                             )
                                                         }
                                                     }

@@ -66,6 +66,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -108,6 +109,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.window.core.layout.WindowSizeClass
@@ -120,12 +124,14 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.pulsemusic.music.R
+import com.pulsemusic.music.db.entities.RecognitionHistory
 import com.pulsemusic.music.musicrecognition.MusicRecognitionAutoStartRequestKey
 import com.pulsemusic.music.musicrecognition.MusicRecognitionRoute
 import com.pulsemusic.music.shazamkit.Shazam
 import com.pulsemusic.music.shazamkit.ShazamSignatureGenerator
 import com.pulsemusic.music.shazamkit.models.RecognitionResult
 import com.pulsemusic.music.ui.utils.appBarScrollBehavior
+import com.pulsemusic.music.widget.MusicRecognitionWidget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,6 +139,7 @@ fun MusicRecognitionScreen(
     navController: NavHostController,
 ) {
     val context = LocalContext.current
+    val database = com.pulsemusic.music.LocalDatabase.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
 
@@ -157,6 +164,8 @@ fun MusicRecognitionScreen(
             if (granted) {
                 launchRecognition(
                     scope = scope,
+                    context = context,
+                    database = database,
                     strings = strings,
                     onState = { state = it },
                     onHaptic = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
@@ -184,6 +193,8 @@ fun MusicRecognitionScreen(
         if (permission) {
             launchRecognition(
                 scope = scope,
+                context = context,
+                database = database,
                 strings = strings,
                 onState = { state = it },
                 onHaptic = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
@@ -232,6 +243,17 @@ fun MusicRecognitionScreen(
                                 contentDescription = stringResource(R.string.back_button_desc),
                             )
                         }
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { navController.navigate("recognition_history") },
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.history),
+                            contentDescription = stringResource(R.string.recognition_history),
+                        )
                     }
                 },
                 colors =
@@ -463,6 +485,8 @@ private data class MusicRecognitionStrings(
 
 private fun launchRecognition(
     scope: kotlinx.coroutines.CoroutineScope,
+    context: android.content.Context,
+    database: com.pulsemusic.music.db.MusicDatabase,
     strings: MusicRecognitionStrings,
     onState: (MusicRecognitionState) -> Unit,
     onHaptic: () -> Unit,
@@ -472,6 +496,8 @@ private fun launchRecognition(
     onReplaceJob(
         scope.launch {
             runRecognitionFlow(
+                context = context,
+                database = database,
                 strings = strings,
                 onState = onState,
                 onHaptic = onHaptic,
@@ -482,6 +508,8 @@ private fun launchRecognition(
 }
 
 private suspend fun runRecognitionFlow(
+    context: android.content.Context,
+    database: com.pulsemusic.music.db.MusicDatabase,
     strings: MusicRecognitionStrings,
     onState: (MusicRecognitionState) -> Unit,
     onHaptic: () -> Unit,
@@ -494,7 +522,7 @@ private suspend fun runRecognitionFlow(
         withContext(Dispatchers.IO) {
             recordMicPcm16Mono(
                 sampleRateHz = 16000,
-                recordMs = 4200L,
+                recordMs = 12000L,
             ).first
         }
 
@@ -518,7 +546,40 @@ private suspend fun runRecognitionFlow(
         }
 
     result.fold(
-        onSuccess = { onState(MusicRecognitionState.Success(it)) },
+        onSuccess = { recognitionResult ->
+            onState(MusicRecognitionState.Success(recognitionResult))
+            withContext(Dispatchers.IO) {
+                database.insert(
+                    RecognitionHistory(
+                        trackId = recognitionResult.trackId,
+                        title = recognitionResult.title,
+                        artist = recognitionResult.artist,
+                        album = recognitionResult.album,
+                        coverArtUrl = recognitionResult.coverArtUrl,
+                        coverArtHqUrl = recognitionResult.coverArtHqUrl,
+                        genre = recognitionResult.genre,
+                        releaseDate = recognitionResult.releaseDate,
+                        label = recognitionResult.label,
+                        shazamUrl = recognitionResult.shazamUrl,
+                        appleMusicUrl = recognitionResult.appleMusicUrl,
+                        spotifyUrl = recognitionResult.spotifyUrl,
+                        isrc = recognitionResult.isrc,
+                        youtubeVideoId = recognitionResult.youtubeVideoId,
+                    )
+                )
+
+                // Update widget
+                val manager = GlanceAppWidgetManager(context)
+                val glanceIds = manager.getGlanceIds(MusicRecognitionWidget::class.java)
+                glanceIds.forEach { glanceId ->
+                    updateAppWidgetState(context, glanceId) { prefs ->
+                        prefs[MusicRecognitionWidget.SongTitleKey] = recognitionResult.title
+                        prefs[MusicRecognitionWidget.ArtistNameKey] = recognitionResult.artist
+                    }
+                }
+                MusicRecognitionWidget().updateAll(context)
+            }
+        },
         onFailure = { e ->
             val msg = e.message?.trim().orEmpty()
             when {

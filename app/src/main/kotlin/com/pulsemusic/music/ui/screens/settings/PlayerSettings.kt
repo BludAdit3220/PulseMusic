@@ -38,6 +38,7 @@ import com.pulsemusic.music.constants.AudioOffload
 import com.pulsemusic.music.constants.AudioQuality
 import com.pulsemusic.music.constants.AudioQualityKey
 import com.pulsemusic.music.constants.LowDataModeKey
+import com.pulsemusic.music.constants.CacheOnMobileDataKey
 import com.pulsemusic.music.constants.AutoDownloadOnLikeKey
 import com.pulsemusic.music.constants.AutoStartOnBluetoothKey
 import com.pulsemusic.music.constants.AutoSkipNextOnErrorKey
@@ -89,6 +90,10 @@ fun PlayerSettings(
     val (lowDataMode, onLowDataModeChange) = rememberPreference(
         LowDataModeKey,
         defaultValue = true
+    )
+    val (cacheOnMobileData, onCacheOnMobileDataChange) = rememberPreference(
+        CacheOnMobileDataKey,
+        defaultValue = false
     )
     val (persistentQueue, onPersistentQueueChange) = rememberPreference(
         PersistentQueueKey,
@@ -275,6 +280,16 @@ fun PlayerSettings(
                     icon = { Icon(painterResource(R.drawable.android_cell), null) },
                     checked = lowDataMode,
                     onCheckedChange = onLowDataModeChange
+                )
+            }
+
+            item(visible = lowDataMode) {
+                SwitchPreference(
+                    title = { Text(stringResource(R.string.cache_on_mobile_data)) },
+                    description = stringResource(R.string.cache_on_mobile_data_desc),
+                    icon = { Icon(painterResource(R.drawable.cached), null) },
+                    checked = cacheOnMobileData,
+                    onCheckedChange = onCacheOnMobileDataChange
                 )
             }
 

@@ -44,6 +44,7 @@ import com.pulsemusic.music.db.entities.PlaylistEntity
 import com.pulsemusic.music.db.entities.PlaylistPlayCount
 import com.pulsemusic.music.db.entities.PlaylistSong
 import com.pulsemusic.music.db.entities.PlaylistSongMap
+import com.pulsemusic.music.db.entities.RecognitionHistory
 import com.pulsemusic.music.db.entities.RelatedSongMap
 import com.pulsemusic.music.db.entities.SearchHistory
 import com.pulsemusic.music.db.entities.SetVideoIdEntity
@@ -75,6 +76,27 @@ import java.util.Locale
 
 @Dao
 interface DatabaseDao {
+    @Query("SELECT * FROM recognition_history ORDER BY recognizedAt DESC")
+    fun recognitionHistory(): Flow<List<RecognitionHistory>>
+
+    @Query("SELECT * FROM recognition_history WHERE id = :id")
+    fun recognitionHistoryById(id: Long): Flow<RecognitionHistory?>
+
+    @Query("SELECT * FROM recognition_history WHERE title LIKE '%' || :query || '%' OR artist LIKE '%' || :query || '%'")
+    fun searchRecognitionHistory(query: String): Flow<List<RecognitionHistory>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insert(recognitionHistory: RecognitionHistory): Long
+
+    @Delete
+    fun delete(recognitionHistory: RecognitionHistory)
+
+    @Query("DELETE FROM recognition_history WHERE id = :id")
+    fun deleteRecognitionHistoryById(id: Long)
+
+    @Query("DELETE FROM recognition_history")
+    fun clearRecognitionHistory()
+
     @Transaction
     @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY rowId")
     fun songsByRowIdAsc(): Flow<List<Song>>

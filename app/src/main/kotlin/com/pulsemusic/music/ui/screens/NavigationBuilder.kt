@@ -91,6 +91,7 @@ import com.pulsemusic.music.ui.screens.settings.ThemeCreatorScreen
 import com.pulsemusic.music.ui.screens.settings.UpdateScreen
 import com.pulsemusic.music.musicrecognition.MusicRecognitionRoute
 import com.pulsemusic.music.ui.screens.musicrecognition.MusicRecognitionScreen
+import com.pulsemusic.music.ui.screens.musicrecognition.RecognitionHistoryScreen
 import com.pulsemusic.music.ui.utils.ShowMediaInfo
 import com.pulsemusic.music.utils.rememberEnumPreference
 import com.pulsemusic.music.utils.rememberPreference
@@ -135,6 +136,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable(MusicRecognitionRoute) {
         MusicRecognitionScreen(navController)
+    }
+    composable("recognition_history") {
+        RecognitionHistoryScreen(navController)
     }
     composable(Screens.MoodAndGenres.route) {
         MoodAndGenresScreen(navController)
