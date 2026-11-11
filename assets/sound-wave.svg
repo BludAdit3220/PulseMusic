@@ -1,0 +1,12 @@
+<svg width="800" height="40" viewBox="0 0 800 40" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+  <style>
+    .w1 { fill: none; stroke: #3DDC84; stroke-width: 3; animation: flow 3s linear infinite; stroke-dasharray: 200 400; opacity: 0.8; }
+    .w2 { fill: none; stroke: #7F52FF; stroke-width: 3; animation: flow 4s linear infinite reverse; stroke-dasharray: 150 450; opacity: 0.8; }
+    @keyframes flow {
+      0% { stroke-dashoffset: 600; }
+      100% { stroke-dashoffset: 0; }
+    }
+  </style>
+  <path class="w1" d="M-100,20 Q-50,0 0,20 T100,20 T200,20 T300,20 T400,20 T500,20 T600,20 T700,20 T800,20 T900,20" />
+  <path class="w2" d="M-100,20 Q-50,40 0,20 T100,20 T200,20 T300,20 T400,20 T500,20 T600,20 T700,20 T800,20 T900,20" />
+</svg>

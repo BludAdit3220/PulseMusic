@@ -106,5 +106,5 @@ core.*
 
 # AI code review
 /.qodo/
-/.github/copilot-instructions.mdsecurity.pdf
-/assets
+/.github/copilot-instructions.md
+security.pdf
