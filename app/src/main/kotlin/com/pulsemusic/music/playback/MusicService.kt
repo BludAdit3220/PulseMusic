@@ -52,7 +52,6 @@ import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.Timeline
-import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
@@ -73,7 +72,6 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.analytics.PlaybackStats
 import androidx.media3.exoplayer.analytics.PlaybackStatsListener
 import androidx.media3.exoplayer.audio.DefaultAudioSink
-import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
@@ -281,7 +279,6 @@ class MusicService :
     private var pauseOnDeviceMuteEnabled = false
     private var wasAutoPausedByDeviceMute = false
     private var hasAudioFocus = false
-    private var duckingRecoveryJob: Job? = null
     private var autoStartOnBluetoothEnabled = false
     private var bluetoothReceiverRegistered = false
     private var wakeLock: PowerManager.WakeLock? = null
@@ -1878,35 +1875,12 @@ class MusicService :
     }
 
     private fun restoreAudioFocusVolume() {
-        duckingRecoveryJob?.cancel()
-        duckingRecoveryJob = null
         audioFocusVolumeFactor.value = 1f
         hasAudioFocus = true
         lastAudioFocusState = AudioManager.AUDIOFOCUS_GAIN
     }
 
-    private fun scheduleDuckingRecovery() {
-        duckingRecoveryJob?.cancel()
-        duckingRecoveryJob = scope.launch {
-            delay(AUDIO_FOCUS_DUCKING_RECOVERY_DELAY_MS)
-            if (!isActive) return@launch
-            if (lastAudioFocusState != AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) return@launch
-            if (audioFocusVolumeFactor.value >= 1f || !shouldKeepPlaybackAudible()) return@launch
-            val focusGranted = requestAudioFocus()
-            if (!focusGranted &&
-                lastAudioFocusState == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK &&
-                shouldKeepPlaybackAudible()
-            ) {
-                audioFocusVolumeFactor.value = 1f
-                lastAudioFocusState = AudioManager.AUDIOFOCUS_NONE
-            }
-        }
-    }
-
     private fun handleAudioFocusChange(focusChange: Int) {
-        duckingRecoveryJob?.cancel()
-        duckingRecoveryJob = null
-
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
                 hasAudioFocus = true
@@ -1955,8 +1929,6 @@ class MusicService :
                 audioFocusVolumeFactor.value = AUDIO_FOCUS_DUCK_VOLUME_FACTOR
 
                 lastAudioFocusState = focusChange
-
-                scheduleDuckingRecovery()
             }
 
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
@@ -2001,8 +1973,6 @@ class MusicService :
     }
 
     private fun abandonAudioFocus() {
-        duckingRecoveryJob?.cancel()
-        duckingRecoveryJob = null
         if (hasAudioFocus) {
             audioFocusRequest?.let { request ->
                 audioManager.abandonAudioFocusRequest(request)
@@ -4042,54 +4012,89 @@ class MusicService :
         bassBoost = null
         virtualizer = null
         loudnessEnhancer = null
-        eqCapabilities.value = null
+        // Keep eqCapabilities cached to avoid UI flicker
     }
 
     private fun ensureAudioEffects(sessionId: Int) {
         if (sessionId <= 0) return
-        if (audioEffectsSessionId == sessionId && equalizer != null) return
+        if (audioEffectsSessionId == sessionId) return
 
         releaseAudioEffects()
         audioEffectsSessionId = sessionId
 
-        equalizer = runCatching { Equalizer(0, sessionId) }.getOrNull()
-        bassBoost = runCatching { BassBoost(0, sessionId) }.getOrNull()
-        virtualizer = runCatching { Virtualizer(0, sessionId) }.getOrNull()
-        loudnessEnhancer = runCatching { LoudnessEnhancer(sessionId) }.getOrNull()
-
-        equalizer?.let(::updateEqCapabilitiesFromEffect)
         applyEqSettingsToEffects(desiredEqSettings.value)
     }
 
     private fun applyEqSettingsToEffects(settings: EqSettings) {
-        val eq = equalizer ?: return
-        val caps = eqCapabilities.value
-        val bandCount = caps?.bandCount ?: readAudioEffectValue("equalizer band count") { eq.numberOfBands.toInt() } ?: 0
-        val minMb = caps?.minBandLevelMb ?: readAudioEffectValue("equalizer minimum band level") { eq.bandLevelRange.getOrNull(0)?.toInt() } ?: -1500
-        val maxMb = caps?.maxBandLevelMb ?: readAudioEffectValue("equalizer maximum band level") { eq.bandLevelRange.getOrNull(1)?.toInt() } ?: 1500
+        val sessionId = audioEffectsSessionId ?: return
+        if (sessionId <= 0) return
 
-        val levels = resampleLevelsByIndex(settings.bandLevelsMb, bandCount)
-        runCatching { eq.enabled = settings.enabled }
-
-        for (band in 0 until bandCount) {
-            val levelMb = levels.getOrNull(band)?.coerceIn(minMb, maxMb) ?: 0
-            runCatching { eq.setBandLevel(band.toShort(), levelMb.toShort()) }
+        // 1. Equalizer
+        if (settings.enabled) {
+            if (equalizer == null) {
+                equalizer = runCatching { Equalizer(0, sessionId) }.getOrNull()
+                equalizer?.let(::updateEqCapabilitiesFromEffect)
+            }
+        } else {
+            if (eqCapabilities.value == null) {
+                val tempEq = runCatching { Equalizer(0, sessionId) }.getOrNull()
+                tempEq?.let(::updateEqCapabilitiesFromEffect)
+                tempEq?.release()
+            }
+            equalizer?.release()
+            equalizer = null
         }
 
-        bassBoost?.let { bb ->
-            runCatching { bb.enabled = settings.bassBoostEnabled }
-            runCatching { bb.setStrength(settings.bassBoostStrength.toShort()) }
+        equalizer?.let { eq ->
+            val caps = eqCapabilities.value
+            val bandCount = caps?.bandCount ?: readAudioEffectValue("equalizer band count") { eq.numberOfBands.toInt() } ?: 0
+            val minMb = caps?.minBandLevelMb ?: readAudioEffectValue("equalizer minimum band level") { eq.bandLevelRange.getOrNull(0)?.toInt() } ?: -1500
+            val maxMb = caps?.maxBandLevelMb ?: readAudioEffectValue("equalizer maximum band level") { eq.bandLevelRange.getOrNull(1)?.toInt() } ?: 1500
+
+            val levels = resampleLevelsByIndex(settings.bandLevelsMb, bandCount)
+            runCatching { eq.enabled = true }
+
+            for (band in 0 until bandCount) {
+                val levelMb = levels.getOrNull(band)?.coerceIn(minMb, maxMb) ?: 0
+                runCatching { eq.setBandLevel(band.toShort(), levelMb.toShort()) }
+            }
         }
 
-        virtualizer?.let { v ->
-            runCatching { v.enabled = settings.virtualizerEnabled }
-            runCatching { v.setStrength(settings.virtualizerStrength.toShort()) }
+        // 2. Bass Boost
+        if (settings.bassBoostEnabled) {
+            if (bassBoost == null) bassBoost = runCatching { BassBoost(0, sessionId) }.getOrNull()
+            bassBoost?.let { bb ->
+                runCatching { bb.enabled = true }
+                runCatching { bb.setStrength(settings.bassBoostStrength.toShort()) }
+            }
+        } else {
+            bassBoost?.release()
+            bassBoost = null
         }
 
-        loudnessEnhancer?.let { le ->
-            val gainMb = if (settings.outputGainEnabled) settings.outputGainMb.coerceIn(-1500, 1500) else 0
-            runCatching { le.setTargetGain(gainMb) }
-            runCatching { le.enabled = settings.outputGainEnabled }
+        // 3. Virtualizer
+        if (settings.virtualizerEnabled) {
+            if (virtualizer == null) virtualizer = runCatching { Virtualizer(0, sessionId) }.getOrNull()
+            virtualizer?.let { v ->
+                runCatching { v.enabled = true }
+                runCatching { v.setStrength(settings.virtualizerStrength.toShort()) }
+            }
+        } else {
+            virtualizer?.release()
+            virtualizer = null
+        }
+
+        // 4. Loudness Enhancer
+        if (settings.outputGainEnabled) {
+            if (loudnessEnhancer == null) loudnessEnhancer = runCatching { LoudnessEnhancer(sessionId) }.getOrNull()
+            loudnessEnhancer?.let { le ->
+                val gainMb = settings.outputGainMb.coerceIn(-1500, 1500)
+                runCatching { le.setTargetGain(gainMb) }
+                runCatching { le.enabled = true }
+            }
+        } else {
+            loudnessEnhancer?.release()
+            loudnessEnhancer = null
         }
     }
 
@@ -5559,18 +5564,7 @@ private fun onMediaItemTransitionInternal() {
                 .Builder(context)
                 .setEnableFloatOutput(false)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                .setAudioProcessorChain(
-                    DefaultAudioSink.DefaultAudioProcessorChain(
-                        SilenceSkippingAudioProcessor(
-                            1_500_000L,
-                            0.35f,
-                            500_000L,
-                            10,
-                            150.toShort(),
-                        ),
-                        SonicAudioProcessor(),
-                    ),
-                ).build()
+                .build()
         }
 
     override fun onPlaybackStatsReady(
@@ -6062,7 +6056,6 @@ private fun onMediaItemTransitionInternal() {
         const val AUDIO_EFFECT_ROUTE_REBIND_DELAY_MS = 200L
         const val AUDIO_ROUTE_RECOVERY_MIN_INTERVAL_MS = 1_500L
         const val AUDIO_ROUTE_RECOVERY_RESUME_DELAY_MS = 150L
-        const val AUDIO_FOCUS_DUCKING_RECOVERY_DELAY_MS = 4_000L
         const val AUDIO_FOCUS_DUCK_VOLUME_FACTOR = 0.35f
         const val MIN_AUDIO_FOCUS_VOLUME_FACTOR = 0.2f
         const val MIN_AUDIO_NORMALIZATION_FACTOR = 0.25f

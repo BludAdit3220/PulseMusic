@@ -271,7 +271,10 @@ class CustomEqualizerAudioProcessor : AudioProcessor {
         outputBuffer = EMPTY_BUFFER
         inputEnded = false
 
-        // Reset filter states
+        // CRITICAL FIX: Reset filter states on flush
+        // ExoPlayer calls flush() on the audio sink when a track changes or a seek occurs.
+        // Clearing the biquad delay lines (x1, x2, y1, y2) prevents 32-bit floating point 
+        // accumulation drift from silencing the audio output over hours of continuous playback.
         filters.forEach { it.reset() }
     }
 
@@ -283,7 +286,6 @@ class CustomEqualizerAudioProcessor : AudioProcessor {
         channelCount = 0
         encoding = C.ENCODING_INVALID
         isActive = false
-        filters.forEach { it.reset() }
     }
 
     override fun queueEndOfStream() {

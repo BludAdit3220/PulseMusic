@@ -23,6 +23,7 @@ dependencyResolutionManagement {
         maven { setUrl("https://central.sonatype.com/repository/maven-snapshots/") }
         maven { setUrl("https://jitpack.io") }
         maven { setUrl("https://maven.aliyun.com/repository/public") }
+        maven { setUrl("https://oss.sonatype.org/content/repositories/snapshots/") }
     }
 }
 
