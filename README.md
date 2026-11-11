@@ -95,7 +95,7 @@ PulseMusic is designed using a multi-module architecture to separate concerns an
 To build the project locally, clone the repository and build via Android Studio or Gradle:
 
 ```bash
-git clone https://github.com/yourusername/PulseMusic.git
+git clone https://github.com/BludAdit3220/PulseMusic.git
 cd PulseMusic
 ./gradlew assembleDebug
 ```
